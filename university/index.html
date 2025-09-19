@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TechTitans_6 University - Excellence in Education</title>
+    <meta name="description" content="TechTitans_6 University - A premier institution offering world-class education with NAAC A++ grade and NBA accreditation. Join thousands of successful graduates." />
+      <link rel="icon" type="image/png" href="/university-logo.png" />
+    <meta property="og:title" content="TechTitans_6 University - Excellence in Education" />
+    <meta property="og:description" content="Premier institution offering world-class education with NAAC A++ grade and NBA accreditation." />
+    <meta property="og:type" content="website" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Virtual Tour modal & viewer (auto-attaches to any "Virtual Tour" button) -->
+    <style>
+      /* modal styles */
+      #tt6-virtual-modal { display:none; position:fixed; inset:0; z-index:2000; align-items:center; justify-content:center; background: rgba(8,10,25,0.6); }
+      #tt6-virtual-wrap { width:90%; max-width:1200px; height:70vh; background:#000; border-radius:12px; overflow:hidden; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+      #tt6-virtual-canvas { width:100%; height:100%; background-position:50% 50%; background-repeat:no-repeat; background-size:150%; cursor:grab; touch-action:none; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; }
+      #tt6-virtual-close { position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.5); color:#fff; border:0; padding:8px 10px; border-radius:8px; cursor:pointer; }
+      #tt6-virtual-hint { position:absolute; left:12px; top:12px; color:#fff; font-size:13px; background:rgba(0,0,0,0.35); padding:6px 8px; border-radius:8px; }
+      /* small screens */
+      @media (max-width:640px) { #tt6-virtual-wrap { height:60vh; width:95%; } }
+    </style>
+
+    <div id="tt6-virtual-modal" role="dialog" aria-hidden="true" aria-label="Virtual Tour">
+      <div id="tt6-virtual-wrap">
+        <div id="tt6-virtual-hint">Drag / Swipe to look around</div>
+        <button id="tt6-virtual-close" aria-label="Close Virtual Tour">Close</button>
+        <div id="tt6-virtual-canvas" aria-hidden="false">Loading panorama…</div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        // Use a local campus equirectangular 360 image if available (place campus-360.jpg in src/assets)
+        const PANORAMA_URL = "/src/assets/campus-360.jpg";
+        // external fallback if local file isn't present
+        const FALLBACK = "https://pannellum.org/images/cerro-toco-0.jpg";
+
+        const modal = document.getElementById("tt6-virtual-modal");
+        const canvas = document.getElementById("tt6-virtual-canvas");
+        const closeBtn = document.getElementById("tt6-virtual-close");
+        const hint = document.getElementById("tt6-virtual-hint");
+
+        // set sensible defaults immediately so it's not fully blank
+        canvas.style.backgroundColor = "#111";
+        canvas.style.backgroundSize = "150%";
+        canvas.style.backgroundPosition = "50% 50%";
+
+        // helper to show an inline message when panorama can't be loaded
+        function showMessage(msg) {
+          canvas.textContent = msg;
+        }
+        function clearMessage() {
+          canvas.textContent = "";
+        }
+
+        // attempt to load an image and call onSuccess/onError
+        function loadImage(url, onSuccess, onError) {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => onSuccess(img.src);
+          img.onerror = onError;
+          img.src = url;
+        }
+
+        // first try primary, then fallback, else show message
+        function setPanorama(url) {
+          clearMessage();
+          loadImage(url, (src) => {
+            canvas.style.backgroundImage = 'url("' + src + '")';
+          }, () => {
+            // try fallback
+            loadImage(FALLBACK, (src2) => {
+              canvas.style.backgroundImage = 'url("' + src2 + '")';
+            }, () => {
+              // both failed
+              canvas.style.backgroundImage = "";
+              showMessage("Panorama image not available. Please try again later.");
+            });
+          });
+        }
+
+        // initial set (so modal shows something when opened)
+        setPanorama(PANORAMA_URL);
+
+        // viewer state
+        let isDown = false;
+        let lastX = 0;
+        let posX = 50;
+        const clampPercent = (p) => ((p % 100) + 100) % 100;
+
+        // mouse handlers
+        canvas.addEventListener("mousedown", (e) => {
+          isDown = true;
+          lastX = e.clientX;
+          canvas.style.cursor = "grabbing";
+        });
+        window.addEventListener("mouseup", () => {
+          isDown = false;
+          canvas.style.cursor = "grab";
+        });
+        canvas.addEventListener("mousemove", (e) => {
+          if (!isDown) return;
+          const dx = e.clientX - lastX;
+          lastX = e.clientX;
+          posX = clampPercent(posX - (dx / canvas.clientWidth) * 100);
+          canvas.style.backgroundPosition = posX + "% 50%";
+        });
+
+        // touch handlers
+        canvas.addEventListener("touchstart", (e) => {
+          isDown = true;
+          lastX = e.touches[0].clientX;
+        }, { passive: true });
+        canvas.addEventListener("touchmove", (e) => {
+          if (!isDown) return;
+          const tx = e.touches[0].clientX;
+          const dx = tx - lastX;
+          lastX = tx;
+          posX = clampPercent(posX - (dx / canvas.clientWidth) * 100);
+          canvas.style.backgroundPosition = posX + "% 50%";
+        }, { passive: true });
+        canvas.addEventListener("touchend", () => { isDown = false; });
+
+        // wheel zoom (background-size)
+        canvas.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          const current = getComputedStyle(canvas).backgroundSize;
+          let size = current.includes("%") ? parseFloat(current) : 150;
+          size = Math.max(100, Math.min(400, size + (e.deltaY > 0 ? 10 : -10)));
+          canvas.style.backgroundSize = size + "%";
+        }, { passive: false });
+
+        function openVirtual(url) {
+          posX = 50;
+          canvas.style.backgroundPosition = posX + "% 50%";
+          canvas.style.backgroundSize = "150%";
+          modal.style.display = "flex";
+          modal.setAttribute("aria-hidden","false");
+          if (url) {
+            setPanorama(url);
+          } else {
+            setPanorama(PANORAMA_URL);
+          }
+        }
+        function closeVirtual() {
+          modal.style.display = "none";
+          modal.setAttribute("aria-hidden","true");
+        }
+        closeBtn.addEventListener("click", closeVirtual);
+
+        // attach to any button/link/img/card for virtual tour:
+        function attachVirtualButtons() {
+          // look for explicit markers: data-virtual-tour="true", data-img,
+          // or helper classes `virtual-tour` / `virtual-tour-img` on buttons/links/images/cards
+          const selector = "button, a, img, [data-virtual-tour], [data-img], .virtual-tour, .virtual-tour-img";
+          const candidates = Array.from(document.querySelectorAll(selector));
+          candidates.forEach((el) => {
+            if (el.getAttribute && el.getAttribute("data-virtual-bound") === "1") return; // skip already bound
+
+            const attr = el.getAttribute ? el.getAttribute("data-virtual-tour") : null;
+            const dataImg = el.getAttribute ? el.getAttribute("data-img") : null;
+            const hasClassVirtual = el.classList && (el.classList.contains("virtual-tour") || el.classList.contains("virtual-tour-img"));
+            // if it's an <img> and has class virtual-tour-img, use its src
+            const imgSrc = el.tagName === "IMG" ? (el.getAttribute("src") || null) : null;
+            // textual trigger fallback (button/link text)
+            const text = (el.textContent || "").trim().toLowerCase();
+
+            const shouldBind = attr === "true" || !!dataImg || hasClassVirtual || (imgSrc && el.classList && el.classList.contains("virtual-tour-img")) || text.includes("virtual tour");
+            if (!shouldBind) return;
+
+            el.addEventListener("click", (ev) => {
+              ev.preventDefault();
+              // priority: data-img attribute, then img src, then element's data-img-like attributes, then default campus pano
+              const custom = dataImg || (imgSrc && el.classList && el.classList.contains("virtual-tour-img") ? imgSrc : null);
+              openVirtual(custom || PANORAMA_URL);
+            });
+            if (el.setAttribute) el.setAttribute("data-virtual-bound", "1");
+          });
+        }
+
+        // initial attach + observe DOM for late-added buttons
+        attachVirtualButtons();
+        const observer = new MutationObserver(() => attachVirtualButtons());
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Esc to close
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") closeVirtual();
+        });
+      })();
+    </script>
+  </body>
+</html>

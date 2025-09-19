@@ -1,0 +1,7 @@
+<!-- filepath: c:\Users\Tharun\Documents\TechTitans_6 University\university\src\assets\stat-package.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="12" fill="#eaf2ff"/>
+  <path d="M16 40c6-8 16-8 22 0" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="22" cy="32" r="3" fill="#10b981"/>
+  <circle cx="36" cy="32" r="3" fill="#f59e0b"/>
+</svg>
